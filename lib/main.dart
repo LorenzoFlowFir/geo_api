@@ -31,9 +31,13 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<String> _selectedRegions = [];
+  String _selectedRegions = '';
   List<String> _regions = [];
   List<String> _idRegions = [];
+
+  String _selectedDpt = '';
+  List<String> _departement = [];
+  List<String> _idDepartement = [];
 
   @override
   void initState() {
@@ -44,6 +48,24 @@ class _MyHomePageState extends State<MyHomePage> {
         _regions = regions;
       });
     });
+    fetchCodeRegions().then((idregions) {
+      setState(() {
+        //print(regions);
+        _idRegions = idregions;
+      });
+    });
+    fetchDepartemnts(_selectedRegions).then((dpt) {
+      setState(() {
+        //print(regions);
+        _departement = dpt;
+      });
+    });
+    fetchCodeDepartemnts(_selectedRegions).then((codeDpt) {
+      setState(() {
+        //print(regions);
+        _idDepartement = codeDpt;
+      });
+    });
   }
 
   Future<List<String>> fetchRegions() async {
@@ -52,9 +74,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as List<dynamic>;
       List<String> regions = [];
-      List<String> idRegions = [];
       for (var i = 0; i < data.length; i++) {
-        idRegions.add(data[i]['code']);
         regions.add(data[i]['nom']);
       }
       return regions;
@@ -63,9 +83,39 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future<List<String>> fetchDepartemnts() async {
-    final response = await http
-        .get(Uri.parse('https://geo.api.gouv.fr/regions/28/departements'));
+  Future<List<String>> fetchCodeRegions() async {
+    final response =
+        await http.get(Uri.parse('https://geo.api.gouv.fr/regions'));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as List<dynamic>;
+      List<String> idRegions = [];
+      for (var i = 0; i < data.length; i++) {
+        idRegions.add(data[i]['code']);
+      }
+      return idRegions;
+    } else {
+      throw Exception('Failed to fetch regions');
+    }
+  }
+
+  Future<List<String>> fetchDepartemnts(codeRegion) async {
+    final response = await http.get(
+        Uri.parse('https://geo.api.gouv.fr/regions/$codeRegion/departements'));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as List<dynamic>;
+      List<String> dpt = [];
+      for (var i = 0; i < data.length; i++) {
+        dpt.add(data[i]['nom']);
+      }
+      return dpt;
+    } else {
+      throw Exception('Failed to fetch dpt');
+    }
+  }
+
+  Future<List<String>> fetchCodeDepartemnts(codeRegion) async {
+    final response = await http.get(
+        Uri.parse('https://geo.api.gouv.fr/regions/$codeRegion/departements'));
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as List<dynamic>;
       List<String> dpt = [];
@@ -102,18 +152,40 @@ class _MyHomePageState extends State<MyHomePage> {
                         itemBuilder: (BuildContext context, int index) {
                           return ListTile(
                             title: Text(_regions[index]),
-                            //onTap: fetchDepartemnts(idRegion),
+                            onTap: () => {
+                              _selectedRegions = _idRegions[index],
+                              print(_selectedRegions),
+                              fetchCodeDepartemnts(_selectedRegions),
+                              fetchCodeDepartemnts(_selectedRegions)
+                            },
                           );
                         },
                       ),
                     )
             ],
-          ), /*
+          ),
           Column(
+              /*
             children: [
               const Text("Départements"),
-              FutureBuilder<List<String>>(
-                future: fetchDepartemnts(),
+              _selectedRegions == ''
+                  ? const Center(
+                      child: Text("Veuillez sélectionner une région"),
+                    )
+                  : SizedBox(
+                      height: 200,
+                      width: 200,
+                      child: ListView.builder(
+                        itemCount: _departement.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return ListTile(
+                              title: Text(_departement[index]),
+                              onTap: () =>
+                                  _selectedDpt = _idDepartement[index]);
+                        },
+                      )),*
+FutureBuilder<List<String>>(
+                future: fetchDepartemnts(_selectedRegions),
                 builder: (BuildContext context,
                     AsyncSnapshot<List<String>> snapshot) {
                   if (snapshot.hasData) {
@@ -132,8 +204,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   }
                 },
               ),
-            ],
-          )*/
+            ],*/
+              )
         ],
       )),
     );
